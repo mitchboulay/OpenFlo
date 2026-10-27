@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 
 # --- UI build ---------------------------------------------------------------
-FROM node:22-alpine AS ui
+# Built once on the build machine's own platform: the output is static JS/CSS, the same for every target, and
+# building it under arm64 emulation (QEMU) stalls npm/Vite for an hour.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS ui
 WORKDIR /src/ui
 COPY ui/package.json ui/package-lock.json ./
 RUN npm ci --no-audit --no-fund

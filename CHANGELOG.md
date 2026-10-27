@@ -2,6 +2,12 @@
 
 All notable changes to OpenFLO are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-10-27
+
+### Fixed
+
+- **The container image now publishes for both x86-64 and ARM64.** The 0.1.0 image build timed out, so 0.1.1 is the first release with images on GHCR.
+
 ## [0.1.0] - 2026-10-27
 
 The first release. See the [README](README.md) and [docs/](docs/) for what it does and how to deploy it.
