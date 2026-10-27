@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+/*
+ * Tailwind reads the design tokens. The default palette is removed so only
+ * token colors exist as utilities (bg-surface, text-dim, border-border2, ...).
+ * Breakpoints stay Tailwind's defaults: sm = 640px, lg = 1024px.
+ */
+@theme {
+  --color-*: initial;
+  --radius-control: 0.75rem; /* 12px: inputs, icon buttons */
+  --radius-button: 0.875rem; /* 14px: buttons, rows */
+  --radius-card: 1.375rem; /* 22px: cards */
+  --radius-sheet: 1.5rem; /* 24px: sheets and dialogs */
+  --container-narrow: 38.75rem; /* 620px: lists (Homes) */
+  --container-wide: 70rem; /* 1120px: device detail, two columns at lg */
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-border: var(--border);
+  --color-border2: var(--border2);
+  --color-card-border: var(--cardBorder);
+  --color-fg: var(--text);
+  --color-dim: var(--dim);
+  --color-faint: var(--faint);
+  --color-accent: var(--accentFill);
+  --color-accent-text: var(--accentText);
+  --color-accent-soft: var(--accentSoft);
+  --color-accent-border: var(--accentBorder);
+  --color-on-accent: var(--onAccent);
+  --color-qr-paper: var(--qrPaper);
+  --color-qr-ink: var(--qrInk);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--okSoft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warnSoft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--badSoft);
+  --color-overlay: var(--overlay);
+  --shadow-raise: var(--raise);
+  --shadow-card: var(--card);
+}
+
+@layer base {
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--bg);
+    background-image: var(--bgGrad);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accentFill);
+    outline-offset: 2px;
+  }
+}

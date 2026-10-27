@@ -1,0 +1,28 @@
+# Vendor material and captures never enter the repository (see artifacts/README.md).
+artifacts/firmware/
+artifacts/apk/
+artifacts/captures/
+*.pcap
+*.pcapng
+
+# Local state
+*.db
+*.db-*
+secret.key
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# UI
+ui/node_modules/
+ui/dist/
+
+.DS_Store
+
+# Local editor and tooling state
+.claude/

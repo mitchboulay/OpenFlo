@@ -1,0 +1,11 @@
+# ACME DNS-01 via Cloudflare instead of HTTP-01 on port 80:
+#   docker compose -f compose.yaml -f compose.dns01.yaml up -d
+# Needs CLOUDFLARE_API_TOKEN in .env (Zone:DNS:Edit on your zone only).
+services:
+  caddy:
+    image: ghcr.io/mitchboulay/openflo-caddy:${OPENFLO_VERSION:-latest}
+    build: docker/caddy-dns
+    environment:
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?set CLOUDFLARE_API_TOKEN in .env}
+    volumes:
+      - ./deploy/Caddyfile.dns01:/etc/caddy/Caddyfile:ro

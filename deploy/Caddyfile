@@ -1,0 +1,32 @@
+# OpenFLO TLS listener (ACME HTTP-01 on port 80). One site serves the web UI and /device-api/*.
+#
+# The device TLS settings are firmware requirements (iFLO 3.0.64). Do not change them:
+#   default_sni  -> the firmware sends no SNI; this picks the certificate for SNI-less handshakes.
+#   rsa2048      -> its cipher suite (ECDHE-RSA-AES128-GCM-SHA256) needs an RSA leaf.
+#   tls1.2       -> the firmware speaks TLS 1.2 only; 1.3 stays on for browsers.
+#   ISRG Root X1 -> the firmware CA bundle has X1 but not X2.
+# Devices connect straight to this listener: no Cloudflare proxy or tunnel in front (DNS-only).
+# DNS-01 variant: Caddyfile.dns01 with compose.dns01.yaml. Keep the two files in step.
+{
+	default_sni {$OPENFLO_DOMAIN}
+}
+
+{$OPENFLO_DOMAIN}:{$OPENFLO_HTTPS_PORT:443} {
+	tls {
+		key_type rsa2048
+		protocols tls1.2 tls1.3
+		issuer acme {
+			email {$OPENFLO_ACME_EMAIL}
+			preferred_chains {
+				root_common_name "ISRG Root X1"
+			}
+		}
+	}
+
+	# Bring your own certificate instead of ACME: replace the tls block above with the line
+	# below and mount the files at /certs in compose.yaml. The leaf MUST be an RSA-2048 key and
+	# fullchain.pem MUST chain to ISRG Root X1 (or another root in the firmware bundle).
+	# tls /certs/fullchain.pem /certs/privkey.pem
+
+	reverse_proxy openflo:8099
+}

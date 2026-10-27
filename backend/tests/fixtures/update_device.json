@@ -1,0 +1,20 @@
+{
+  "batteryLevel": 98,
+  "firmwareVersion": "3.0.64",
+  "connectionLevel": 100,
+  "localIpAddress": "192.168.30.80",
+  "bottleSensorStatus": "inserted",
+  "networkName": "OpenFLO",
+  "extPowerState": false,
+  "isProVersion": false,
+  "ramUsed": 120000,
+  "ramTotal": 320000,
+  "ramUsedPercent": 37,
+  "HeapFailureCount": 0,
+  "deviceType": 0,
+  "pingQuality": 100,
+  "pingLatency": 22,
+  "pingFailureCount": 0,
+  "dnsFailureCount": 0,
+  "noAppMode": 0
+}

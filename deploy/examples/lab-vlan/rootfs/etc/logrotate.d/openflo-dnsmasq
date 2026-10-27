@@ -1,0 +1,14 @@
+/var/log/openflo/dnsmasq.log {
+    daily
+    rotate 90
+    dateext
+    dateformat -%Y%m%d
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 dnsmasq root
+    postrotate
+        systemctl kill -s USR2 dnsmasq.service >/dev/null 2>&1 || true
+    endscript
+}

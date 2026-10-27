@@ -1,0 +1,22 @@
+[Unit]
+Description=OpenFLO device backend emulator
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/openflo/backend
+# Proxy headers are trusted only from 127.0.0.1 (the gateway container Caddy), so the
+# registration source check sees the device address, not the proxy.
+ExecStart=/opt/openflo/venv/bin/uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8099 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Environment=OPENFLO_BACKEND_DB=/opt/openflo/backend/openflo-backend.db
+# Device registry, dispensing lock and check-in interval live in the DB (/api/v1).
+# API tokens only until sessions land; OPENFLO_API_TOKEN (the bootstrap token the
+# dashboard controller uses) lives in backend.env (root 0600, generated on the host,
+# never committed).
+Environment=OPENFLO_AUTH_MODE=basic
+EnvironmentFile=-/etc/openflo/backend.env
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

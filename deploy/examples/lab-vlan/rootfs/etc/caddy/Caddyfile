@@ -1,0 +1,60 @@
+# OpenFLO lab TLS listener on openflo-gw (the gateway container). VLAN 30 only: 192.168.30.1:443.
+# iFLO 3.0.64 ClientHello (captured): TLS 1.2 only, no SNI, no ALPN, PKCS#1/ECDSA sigalgs.
+#   default_sni  -> the cert is selected for SNI-less handshakes.
+#   rsa2048      -> the observed suite ECDHE-RSA-AES128-GCM-SHA256 needs an RSA leaf.
+#   ISRG Root X1 -> present in the firmware's esp_crt_bundle (tools/dump_crt_bundle.py verify).
+# A LAN reverse proxy can serve the same name for the analyst path; this one is the device path.
+# Since I2.1 it forwards to an OpenFLO host on the LAN; the gateway container's own backend is only the rollback target.
+# Placeholders: replace the email, hostnames, 192.168.30.80 (device) and 192.168.1.40 (OpenFLO host).
+{
+	email you@example.com
+	default_bind 192.168.30.1
+	default_sni openflo-backend.home.example.com
+	auto_https disable_redirects
+	servers {
+		protocols h1
+	}
+	log default {
+		output file /var/log/caddy/caddy.log
+		format json
+	}
+}
+
+openflo-backend.home.example.com:443 {
+	tls {
+		key_type rsa2048
+		protocols tls1.2 tls1.3
+		issuer acme {
+			dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+			preferred_chains {
+				root_common_name "ISRG Root X1"
+			}
+		}
+	}
+
+	# nftables admits only the device to :443; this repeats it so a firewall slip fails closed.
+	@not_device not remote_ip 192.168.30.80
+	respond @not_device 403
+
+	# Management API is LAN-side only (LAN reverse proxy + token); never on the device path.
+	respond /api/* 404
+
+	log {
+		output file /var/log/caddy/openflo-access.log {
+			roll_size 50MiB
+			roll_keep 20
+		}
+		format filter {
+			request>headers>X-Device-Ott delete
+		}
+	}
+
+	# Upstream: OpenFLO on the LAN (task I2.1). The device's TLS still ends here, on the name it was
+	# provisioned with; the hop to OpenFLO is verified TLS for the public name. Rollback: 127.0.0.1:8099.
+	reverse_proxy https://192.168.1.40:443 {
+		header_up Host openflo.example.com
+		transport http {
+			tls_server_name openflo.example.com
+		}
+	}
+}

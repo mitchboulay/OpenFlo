@@ -1,0 +1,23 @@
+# OpenFLO TLS listener, ACME DNS-01 via Cloudflare (used by compose.dns01.yaml).
+# Same device TLS settings as deploy/Caddyfile; only the ACME challenge differs.
+# Use it when port 80 can't be forwarded, or for a private name the CA can't reach.
+# The DNS record stays DNS-only (grey cloud): the device must reach this listener directly.
+{
+	default_sni {$OPENFLO_DOMAIN}
+}
+
+{$OPENFLO_DOMAIN}:{$OPENFLO_HTTPS_PORT:443} {
+	tls {
+		key_type rsa2048
+		protocols tls1.2 tls1.3
+		issuer acme {
+			email {$OPENFLO_ACME_EMAIL}
+			dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+			preferred_chains {
+				root_common_name "ISRG Root X1"
+			}
+		}
+	}
+
+	reverse_proxy openflo:8099
+}

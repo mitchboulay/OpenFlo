@@ -1,0 +1,53 @@
+/*
+ * OpenFLO design tokens, from the v2 prototype.
+ * The only file in ui/ that holds raw colors.
+ *
+ * Every value is written once as light-dark(<light>, <dark>). The active side
+ * follows `color-scheme`: the OS preference by default, or a manual override
+ * via <html data-theme="light|dark">.
+ */
+:root {
+  color-scheme: light dark;
+
+  --bg: light-dark(#f6f8fc, #0b1020);
+  --bgGrad:
+    radial-gradient(900px 640px at 100% 0%, light-dark(rgba(165, 243, 252, 0.5), rgba(34, 211, 238, 0.1)), transparent 62%),
+    radial-gradient(900px 700px at 0% 100%, light-dark(rgba(199, 210, 254, 0.5), rgba(99, 102, 241, 0.14)), transparent 62%);
+  --surface: light-dark(#ffffff, #131a2b);
+  --surface2: light-dark(#f4f6fb, #1a2236);
+  --border: light-dark(#e6eaf2, #252e45);
+  --border2: light-dark(#cfd6e4, #36415c);
+  --cardBorder: light-dark(rgba(226, 232, 240, 0.9), #232c42);
+  --text: light-dark(#1e293b, #e2e8f0);
+  --dim: light-dark(#5b6b82, #9aa8bd);
+  --faint: light-dark(#8a97aa, #7a879c);
+  --accentFill: light-dark(#5558e8, #5f62f2);
+  --accentText: light-dark(#4f46e5, #a5b4fc);
+  --accentSoft: light-dark(rgba(99, 102, 241, 0.07), rgba(129, 140, 248, 0.12));
+  --accentBorder: light-dark(rgba(99, 102, 241, 0.38), rgba(129, 140, 248, 0.45));
+  --tileGrad: linear-gradient(135deg, #818cf8, #5558e8);
+  /* Text and knobs drawn on --accentFill, --tileGrad and the switch track. */
+  --onAccent: #ffffff;
+  /* QR codes stay dark-on-light in both themes: phone cameras expect it. */
+  --qrPaper: #ffffff;
+  --qrInk: #000000;
+  --ok: light-dark(#15803d, #4ade80);
+  --okSoft: light-dark(rgba(22, 163, 74, 0.09), rgba(74, 222, 128, 0.12));
+  --warn: light-dark(#b45309, #fbbf24);
+  --warnSoft: light-dark(rgba(245, 158, 11, 0.12), rgba(251, 191, 36, 0.12));
+  --bad: light-dark(#dc2626, #f87171);
+  --badSoft: light-dark(rgba(220, 38, 38, 0.08), rgba(248, 113, 113, 0.13));
+  --overlay: light-dark(rgba(15, 23, 42, 0.32), rgba(0, 0, 0, 0.6));
+  --raise: 0 1px 2px light-dark(rgba(15, 23, 42, 0.06), rgba(0, 0, 0, 0.3));
+  --card:
+    0 1px 2px light-dark(rgba(15, 23, 42, 0.04), rgba(0, 0, 0, 0.3)),
+    0 14px 36px -10px light-dark(rgba(30, 41, 59, 0.1), rgba(0, 0, 0, 0.45));
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}

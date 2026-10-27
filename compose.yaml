@@ -1,0 +1,105 @@
+# OpenFLO: docker compose up -d   (settings in .env; start from .env.example)
+# Only Caddy publishes ports. The backend (8099) is reachable inside the compose network only.
+
+x-openflo-hardening: &hardening
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  openflo:
+    image: ghcr.io/mitchboulay/openflo:${OPENFLO_VERSION:-latest}
+    build: .
+    restart: unless-stopped
+    <<: *hardening
+    # Listed explicitly (not env_file) so Caddy-only secrets such as CLOUDFLARE_API_TOKEN never reach the app.
+    environment:
+      # Trust X-Forwarded-For only from the Caddy container (fixed IP below).
+      FORWARDED_ALLOW_IPS: 172.30.0.2
+      TZ: ${TZ:-UTC}
+      OPENFLO_PUBLIC_URL: ${OPENFLO_PUBLIC_URL:-}
+      OPENFLO_PUBLIC: ${OPENFLO_PUBLIC:-true}
+      OPENFLO_AUTH_MODE: ${OPENFLO_AUTH_MODE:-basic}
+      OPENFLO_API_TOKEN: ${OPENFLO_API_TOKEN:-}
+      OPENFLO_ADMIN_USER: ${OPENFLO_ADMIN_USER:-}
+      OPENFLO_ADMIN_PASSWORD_HASH: ${OPENFLO_ADMIN_PASSWORD_HASH:-}
+      OPENFLO_OIDC_ISSUER: ${OPENFLO_OIDC_ISSUER:-}
+      OPENFLO_OIDC_CLIENT_ID: ${OPENFLO_OIDC_CLIENT_ID:-}
+      OPENFLO_OIDC_CLIENT_SECRET: ${OPENFLO_OIDC_CLIENT_SECRET:-}
+      OPENFLO_OIDC_ALLOWED_GROUPS: ${OPENFLO_OIDC_ALLOWED_GROUPS:-}
+      OPENFLO_TRUSTED_PROXY_CIDR: ${OPENFLO_TRUSTED_PROXY_CIDR:-}
+      OPENFLO_LOCAL_DEVICE_ACCESS: ${OPENFLO_LOCAL_DEVICE_ACCESS:-false}
+      OPENFLO_UNCLAIMED_CAP: ${OPENFLO_UNCLAIMED_CAP:-10}
+    volumes:
+      - openflo-data:/data
+    networks:
+      openflo:
+        ipv4_address: 172.30.0.3
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - openflo
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      OPENFLO_DOMAIN: ${OPENFLO_DOMAIN:?set OPENFLO_DOMAIN in .env}
+      OPENFLO_HTTPS_PORT: ${OPENFLO_HTTPS_PORT:-443}
+      OPENFLO_ACME_EMAIL: ${OPENFLO_ACME_EMAIL:?set OPENFLO_ACME_EMAIL in .env}
+    ports:
+      - "${OPENFLO_HTTPS_PORT:-443}:${OPENFLO_HTTPS_PORT:-443}"
+      - "80:80" # ACME HTTP-01 and the http -> https redirect
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      openflo:
+        ipv4_address: 172.30.0.2
+
+  # Daily database backup at 02:30 in TZ to /data/backups (14 kept). Off by default: enable with
+  #   docker compose --profile backup up -d
+  # One-off: docker compose run --rm backup openflo backup
+  backup:
+    image: ghcr.io/mitchboulay/openflo:${OPENFLO_VERSION:-latest}
+    profiles: [backup]
+    restart: unless-stopped
+    <<: *hardening
+    environment:
+      TZ: ${TZ:-UTC}
+    # The loop is the command (not the entrypoint), so `docker compose run --rm backup openflo ...` replaces it.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        while :; do
+          now=$$(date +%s)
+          next=$$(date -d '02:30' +%s)
+          [ "$$next" -gt "$$now" ] || next=$$(date -d 'tomorrow 02:30' +%s)
+          sleep $$((next - now))
+          openflo backup
+        done
+    healthcheck:
+      disable: true
+    volumes:
+      - openflo-data:/data
+    networks:
+      - openflo
+
+networks:
+  openflo:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  openflo-data:
+  caddy-data:
+  caddy-config:

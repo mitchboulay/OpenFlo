@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenFLO</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --border: #2a2d3a;
+  --text: #e4e4e7;
+  --text-dim: #71717a;
+  --accent: #3b82f6;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --red: #ef4444;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  padding: 16px; max-width: 960px; margin: 0 auto;
+}
+h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 4px; }
+.subtitle { color: var(--text-dim); font-size: 0.875rem; margin-bottom: 24px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.card-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.card-value { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.card-detail { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.status-dot.awake { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-dot.asleep { background: var(--text-dim); }
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.control { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.control-text { flex: 1 1 150px; min-width: 0; }
+.control-title { font-weight: 600; }
+.control-help { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+.switch { position: relative; width: 48px; height: 28px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; inset: 0; background: var(--border); border-radius: 9999px; cursor: pointer; transition: background .15s; }
+.slider::before { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; background: var(--text); border-radius: 50%; transition: transform .15s; }
+.switch input:checked + .slider { background: var(--green); }
+.switch input:checked + .slider::before { transform: translateX(20px); }
+.switch input:focus-visible + .slider { outline: 2px solid var(--accent); outline-offset: 2px; }
+select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font: inherit; }
+.pending { color: var(--yellow); font-size: 0.75rem; margin-top: 6px; min-height: 1em; }
+.inline { display: flex; align-items: center; gap: 6px; }
+input[type=number] { width: 72px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font: inherit; }
+button { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; font: inherit; cursor: pointer; }
+button:disabled { opacity: .4; cursor: default; }
+button.link { background: none; color: var(--text-dim); padding: 0; margin-top: 8px; font-size: 0.75rem; text-decoration: underline; }
+.unit { color: var(--text-dim); }
+.dispense-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+#c-dispense.confirm { background: var(--yellow); color: #111; }
+.dispense-row .link { margin-top: 0; }
+.calibrate { margin-top: 10px; font-size: 0.8125rem; }
+.calibrate summary { cursor: pointer; color: var(--accent); }
+.calibrate ol { margin: 8px 0 8px 18px; display: grid; gap: 8px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+th { text-align: left; color: var(--text-dim); font-weight: 500; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.75rem; text-transform: uppercase; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.empty { color: var(--text-dim); }
+h2 { font-size: 1rem; font-weight: 600; margin: 24px 0 12px; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.6875rem; font-weight: 600; }
+.pill-ok { background: #14532d; color: var(--green); }
+.pill-warn { background: #422006; color: var(--yellow); }
+.pill-bad { background: #450a0a; color: var(--red); }
+.updated { color: var(--text-dim); font-size: 0.75rem; text-align: right; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<h1>OpenFLO</h1>
+<p class="subtitle" id="subtitle">iFLO on the self-hosted backend</p>
+
+<h2>Controls</h2>
+<div class="controls">
+  <div class="card">
+    <div class="control">
+      <div class="control-text">
+        <div class="control-title">Dispensing</div>
+        <div class="control-help">Off locks the device: no button, schedule or remote dose.</div>
+      </div>
+      <label class="switch" title="Dispensing">
+        <input type="checkbox" id="c-dispensing" aria-label="Dispensing enabled">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="pending" id="c-dispensing-pending"></div>
+    <div class="dispense-row">
+      <button type="button" id="c-dispense">Dispense</button>
+      <button type="button" class="link" id="c-dispense-cancel" hidden>Cancel</button>
+    </div>
+    <div class="control-help" id="c-dispense-status">Runs one dose at the next check-in.</div>
+  </div>
+  <div class="card">
+    <div class="control">
+      <div class="control-text">
+        <div class="control-title">Check-in interval</div>
+        <div class="control-help">How often the device wakes on its own.</div>
+      </div>
+      <select id="c-interval" aria-label="Check-in interval">
+        <option value="">Device default (48 h)</option>
+        <option value="900">15 min</option>
+        <option value="1800">30 min</option>
+        <option value="3600">1 h</option>
+        <option value="3900">65 min</option>
+        <option value="7200">2 h</option>
+        <option value="21600">6 h</option>
+        <option value="43200">12 h</option>
+        <option value="86400">24 h</option>
+        <option value="172800">48 h</option>
+      </select>
+    </div>
+    <div class="pending" id="c-interval-pending"></div>
+  </div>
+  <div class="card">
+    <div class="control">
+      <div class="control-text">
+        <div class="control-title">Dose time</div>
+        <div class="control-help" id="c-dose-help">Pump run time per dose.</div>
+      </div>
+      <form id="c-dose-form" class="inline">
+        <input type="number" id="c-dose" min="1" max="30" step="0.1" inputmode="decimal" aria-label="Dose time in seconds">
+        <span class="unit">s</span>
+        <button type="submit">Save</button>
+      </form>
+    </div>
+    <div class="pending" id="c-dose-pending"></div>
+    <details class="calibrate">
+      <summary>Calibrate for your liquid</summary>
+      <ol>
+        <li>Put a measuring cup under the outlet and press the device button once.</li>
+        <li>Enter what came out: <input type="number" id="cal-measured" min="0" step="1" inputmode="decimal" aria-label="Measured volume in mL"> mL
+          <div class="control-help" id="cal-flow">Flow appears here.</div></li>
+        <li>Enter the volume you want per dose: <input type="number" id="cal-target" min="0" step="1" inputmode="decimal" aria-label="Target volume in mL"> mL
+          <div class="control-help" id="cal-result"></div></li>
+      </ol>
+      <button type="button" id="cal-apply" disabled>Use this dose time</button>
+    </details>
+    <button type="button" class="link" id="c-dose-reset">Use firmware default</button>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-label">Device</div>
+    <div class="card-value" id="v-status">--</div>
+    <div class="card-detail" id="v-status-detail"></div>
+  </div>
+  <div class="card">
+    <div class="card-label">Battery</div>
+    <div class="card-value" id="v-battery">--</div>
+    <div class="card-detail" id="v-battery-detail"></div>
+  </div>
+  <div class="card">
+    <div class="card-label">Bottle</div>
+    <div class="card-value" id="v-bottle">--</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Wi-Fi</div>
+    <div class="card-value" id="v-signal">--</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Dispenses</div>
+    <div class="card-value" id="v-dispenses">--</div>
+    <div class="card-detail" id="v-dispenses-detail"></div>
+  </div>
+  <div class="card">
+    <div class="card-label">Wakes</div>
+    <div class="card-value" id="v-wakes">--</div>
+    <div class="card-detail" id="v-wakes-detail"></div>
+  </div>
+</div>
+
+<h2>Wake sessions</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Session</th><th>Started</th><th>Duration</th><th>Frames</th></tr></thead>
+  <tbody id="wake-table"></tbody>
+</table></div>
+
+<h2>Dispenses</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Device time</th><th>Type</th><th>Received</th></tr></thead>
+  <tbody id="dispense-table"></tbody>
+</table></div>
+
+<h2>Device events</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Received</th><th>Events</th></tr></thead>
+  <tbody id="event-table"></tbody>
+</table></div>
+
+<div class="updated" id="last-updated"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// send-events decode (firmware SE_* table for status 0, EE_* for status 1).
+// Index = position in the firmware's SE_*/EE_* name tables (anchored by observed codes 4, 5, 6, 9, 13).
+const SE = ['', 'Scheduled dispense OK', 'Manual dispense OK', 'Boosted dispense OK', 'Float off', 'OTA OK',
+  'External power on', 'External power off', 'Remote dispense OK', 'Woke: power', 'Woke: sync timer',
+  'Woke: schedule', 'Woke: button', 'Woke: bottle', 'Woke: float', 'Woke: external power'];
+const EE = ['', 'Battery critical', 'Battery low', 'Wi-Fi connect failed', 'Backend connect failed', 'New bottle',
+  'Bottle ejected', 'Bottle empty', 'Scheduled dispense failed', 'Manual dispense failed', 'Boosted dispense failed',
+  'Float active', 'Dispense cancelled: low battery', 'OTA cancelled: low battery', 'OTA cancelled: low Wi-Fi',
+  'OTA failed', 'OTA cancelled: rx', 'OTA cancelled: corrupt image', 'OTA cancelled: timeout', 'OTA cancelled: header',
+  'OTA cancelled: read', 'OTA cancelled: begin', 'Heap failure', 'Remote dispense failed', 'Valve opening failed',
+  'Valve closing failed', 'Wi-Fi attempts exhausted', 'Bottle info issue', 'OTA cancelled: version', 'Lost IP',
+  'Ping failed', 'DNS failed'];
+const eventName = e => (e.status === 1 ? EE[e.code] : SE[e.code]) || `code ${e.code}/${e.status}`;
+const BOTTLE = {OK: ['OK', 'pill-ok'], inserted: ['OK', 'pill-ok'], insertedUnauthorized: ['Locked', 'pill-warn'],
+                notInserted: ['Missing', 'pill-bad'], empty: ['Empty', 'pill-bad']};
+
+function fmt(iso) { return iso ? new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '--'; }
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString([], {month:'short', day:'numeric'}) + ' ' + fmt(iso) : '--'; }
+function fmtEpoch(s) { return s ? fmtDate(new Date(s * 1000).toISOString()) : '--'; }
+function dur(s) {
+  if (!s && s !== 0) return '--';
+  s = Math.round(s);
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s/60) + 'm ' + (s%60) + 's';
+  return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'm';
+}
+function bottlePill(raw) {
+  const [label, cls] = BOTTLE[raw] || [raw || '--', 'pill-warn'];
+  return `<span class="pill ${cls}">${esc(label)}</span>`;
+}
+
+let editing = false;  // don't overwrite a control the user is changing
+const FIRMWARE_FIRST_DOSE = 6.5;  // firmware table slot 0; used while no dose time is set
+let effectiveDose = FIRMWARE_FIRST_DOSE;
+let suggestedDose = null;
+
+function renderControls(d) {
+  const c = d.controls || {};
+  const lastSync = d.device && d.device.last_seen;
+  const pending = c.updated_at && (!lastSync || c.updated_at > lastSync);
+  if (!editing) {
+    $('c-dispensing').checked = !!c.dispensing_enabled;
+    $('c-interval').value = c.sync_interval_seconds ? String(c.sync_interval_seconds) : '';
+  }
+  effectiveDose = c.dose_seconds || FIRMWARE_FIRST_DOSE;
+  if (!editing && document.activeElement !== $('c-dose')) $('c-dose').value = effectiveDose.toFixed(1);
+  $('c-dose-help').textContent = c.dose_seconds
+    ? 'Pump run time per dose (custom).'
+    : `Pump run time per dose (firmware default ${FIRMWARE_FIRST_DOSE} s).`;
+  $('c-dose-reset').hidden = !c.dose_seconds;
+  const note = pending ? 'Waiting for the device to check in.' : '';
+  $('c-dispensing-pending').textContent = note;
+  $('c-interval-pending').textContent = note;
+  $('c-dose-pending').textContent = note;
+  updateCalibration();
+}
+
+async function save(change) {
+  editing = true;
+  $('last-updated').textContent = 'Saving…';
+  try {
+    const r = await fetch('/api/device/controls', {
+      method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(change),
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || r.status);
+  } catch (e) {
+    $('last-updated').textContent = 'Save failed: ' + e.message;
+  } finally {
+    editing = false;
+    refresh();
+  }
+}
+
+let confirmTimer = null;
+function renderDispense(d) {
+  const rd = d.remote_dispense || {};
+  const enabled = !!(d.controls && d.controls.dispensing_enabled);
+  const pending = rd.pending;
+  $('c-dispense').disabled = !enabled || !!pending;
+  $('c-dispense-cancel').hidden = !pending;
+  if (pending) {
+    $('c-dispense-status').textContent = `Queued ${fmt(pending.requested_at)} · runs at the next check-in.`;
+  } else if (!enabled) {
+    $('c-dispense-status').textContent = 'Turn dispensing on to use this.';
+  } else if (rd.last_delivered) {
+    $('c-dispense-status').textContent = `Last sent to device ${fmtDate(rd.last_delivered.delivered_at)}.`;
+  } else {
+    $('c-dispense-status').textContent = 'Runs one dose at the next check-in.';
+  }
+}
+function resetConfirm() {
+  clearTimeout(confirmTimer);
+  confirmTimer = null;
+  $('c-dispense').classList.remove('confirm');
+  $('c-dispense').textContent = 'Dispense';
+}
+$('c-dispense').addEventListener('click', async () => {
+  if (!confirmTimer) {  // first click arms, second click (within 5 s) queues
+    $('c-dispense').classList.add('confirm');
+    $('c-dispense').textContent = 'Confirm dispense';
+    confirmTimer = setTimeout(resetConfirm, 5000);
+    return;
+  }
+  resetConfirm();
+  await deviceAction('POST', 'Dispense queued.');
+});
+$('c-dispense-cancel').addEventListener('click', () => deviceAction('DELETE', 'Dispense cancelled.'));
+async function deviceAction(method, ok) {
+  try {
+    const r = await fetch('/api/device/dispense', {method});
+    if (!r.ok) throw new Error((await r.json()).detail || r.status);
+    $('last-updated').textContent = ok;
+  } catch (e) {
+    $('last-updated').textContent = 'Failed: ' + e.message;
+  }
+  refresh();
+}
+
+function updateCalibration() {
+  const measured = parseFloat($('cal-measured').value);
+  const target = parseFloat($('cal-target').value);
+  suggestedDose = null;
+  if (!(measured > 0)) {
+    $('cal-flow').textContent = `Flow appears here (current dose time ${effectiveDose.toFixed(1)} s).`;
+    $('cal-result').textContent = '';
+  } else {
+    const flow = measured / effectiveDose;
+    $('cal-flow').textContent = `Flow ≈ ${flow.toFixed(1)} mL/s at ${effectiveDose.toFixed(1)} s.`;
+    if (target > 0) {
+      const raw = Math.round((target / flow) * 10) / 10;
+      suggestedDose = Math.min(30, Math.max(1, raw));
+      $('cal-result').textContent = raw === suggestedDose
+        ? `Dose time ${suggestedDose.toFixed(1)} s.`
+        : `Needs ${raw.toFixed(1)} s; limited to ${suggestedDose.toFixed(1)} s (1–30 s).`;
+    } else {
+      $('cal-result').textContent = '';
+    }
+  }
+  $('cal-apply').disabled = suggestedDose === null;
+}
+$('cal-measured').addEventListener('input', updateCalibration);
+$('cal-target').addEventListener('input', updateCalibration);
+$('cal-apply').addEventListener('click', () => {
+  if (suggestedDose === null) return;
+  $('cal-measured').value = '';  // the old measurement no longer matches the new time
+  save({dose_seconds: suggestedDose});
+});
+$('c-dose-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = parseFloat($('c-dose').value);
+  if (!(v >= 1 && v <= 30)) { $('last-updated').textContent = 'Dose time must be 1–30 s.'; return; }
+  save({dose_seconds: Math.round(v * 10) / 10});
+});
+$('c-dose-reset').addEventListener('click', () => save({dose_seconds: null}));
+
+$('c-dispensing').addEventListener('change', e => save({dispensing_enabled: e.target.checked}));
+$('c-interval').addEventListener('change', e =>
+  save({sync_interval_seconds: e.target.value ? Number(e.target.value) : null}));
+
+async function refresh() {
+  try {
+    const [device, stats, wakes] = await Promise.all([
+      fetch('/api/device').then(r => r.json()),
+      fetch('/api/stats').then(r => r.json()),
+      fetch('/api/wake-events?limit=10').then(r => r.json()),
+    ]);
+
+    if (device.controls) { renderControls(device); renderDispense(device); }
+
+    const m = stats.monitor || {};
+    $('v-status').innerHTML = `<span class="status-dot ${m.device_awake ? 'awake' : 'asleep'}"></span>${m.device_awake ? 'Awake' : 'Asleep'}`;
+    $('v-status-detail').textContent = device.device ? 'Last sync ' + fmtDate(device.device.last_seen) : 'Not registered';
+    if (device.device) $('subtitle').textContent = `${device.device.device_id} · firmware ${device.device.firmware_version || '?'}`;
+
+    const t = device.latest_telemetry;
+    if (t) {
+      $('v-battery').textContent = t.batteryLevel + '%';
+      $('v-battery-detail').textContent = (t.extPowerState ? 'External power' : 'Batteries') + ' · ' + fmt(t.received_at);
+      $('v-bottle').innerHTML = bottlePill(t.bottleSensorStatus);
+      $('v-signal').textContent = t.connectionLevel + '%';
+    }
+
+    const disp = device.dispenses || {total: 0, recent: []};
+    $('v-dispenses').textContent = disp.total;
+    $('v-dispenses-detail').textContent = disp.recent.length ? 'Last ' + fmtEpoch(disp.recent[0].device_timestamp) : 'None yet';
+
+    $('v-wakes').textContent = stats.total_wake_events;
+    $('v-wakes-detail').textContent = stats.avg_wake_interval_seconds ? 'Avg interval ' + dur(stats.avg_wake_interval_seconds) : '';
+
+    $('wake-table').innerHTML = wakes.length ? wakes.map(w => {
+      const d = w.ended_at ? dur((new Date(w.ended_at) - new Date(w.started_at)) / 1000) : 'Active';
+      return `<tr><td>#${esc(w.id)}</td><td>${fmtDate(w.started_at)}</td><td>${d}</td><td>${esc(w.frames ?? '')}</td></tr>`;
+    }).join('') : '<tr><td colspan="4" class="empty">No wakes recorded</td></tr>';
+
+    $('dispense-table').innerHTML = disp.recent.length ? disp.recent.map(x =>
+      `<tr><td>${fmtEpoch(x.device_timestamp)}</td><td>${esc(SE[x.code] || 'code ' + x.code)}</td><td>${fmtDate(x.received_at)}</td></tr>`
+    ).join('') : '<tr><td colspan="3" class="empty">No dispenses reported</td></tr>';
+
+    const events = (device.recent_events || []).filter(e => e.kind === 'send-events');
+    $('event-table').innerHTML = events.length ? events.map(e => {
+      let items = [];
+      try { items = JSON.parse(e.payload_json).data || []; } catch (_) {}
+      return `<tr><td>${fmtDate(e.received_at)}</td><td>${items.map(i => esc(eventName(i))).join(', ')}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" class="empty">No events</td></tr>';
+
+    $('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    $('last-updated').textContent = 'Error: ' + e.message;
+  }
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

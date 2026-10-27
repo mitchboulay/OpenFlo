@@ -1,0 +1,12 @@
+# Allowlist: the image needs only the backend package and the UI sources.
+# Everything else (artifacts, research, captures, .git, tooling directories, local DBs, .env) stays out.
+*
+!backend/app
+!backend/requirements.txt
+!backend/openapi.json
+!ui
+ui/node_modules
+ui/dist
+**/__pycache__
+**/*.db
+**/*.db-*
