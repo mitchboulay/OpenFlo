@@ -1,6 +1,6 @@
 # OpenFLO
 
-OpenFLO is a self-hosted server for iFLO HVAC drain-line dispensers running stock firmware 3.0.64. It replaces the vendor cloud, so you control how much your dispensers dose, and when, from your own server.
+OpenFLO is a self-hosted server for iFLO HVAC drain-line dispensers running stock firmware 3.0.64. It replaces the vendor cloud, so you control how much your dispensers dose, and when, from your own server. You can also refill the original cartridge with a cleaning solution of your choice instead of buying replacement cartridges.
 
 It is for homelab owners who run Docker and can point a DNS name at their server.
 
